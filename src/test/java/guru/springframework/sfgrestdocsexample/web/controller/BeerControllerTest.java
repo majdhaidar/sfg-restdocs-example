@@ -6,12 +6,14 @@ import guru.springframework.sfgrestdocsexample.repositories.BeerRepository;
 import guru.springframework.sfgrestdocsexample.web.model.BeerDto;
 import guru.springframework.sfgrestdocsexample.web.model.BeerStyleEnum;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.restdocs.AutoConfigureRestDocs;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.ComponentScan;
-import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.restdocs.RestDocumentationExtension;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
@@ -20,9 +22,15 @@ import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
+import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.*;
+import static org.springframework.restdocs.payload.PayloadDocumentation.*;
+import static org.springframework.restdocs.request.RequestDocumentation.parameterWithName;
+import static org.springframework.restdocs.request.RequestDocumentation.pathParameters;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+@ExtendWith(RestDocumentationExtension.class)
+@AutoConfigureRestDocs
 @WebMvcTest(BeerController.class)
 @ComponentScan(basePackages = "guru.springframework.sfgrestdocsexample.web.mappers")
 class BeerControllerTest {
@@ -40,8 +48,23 @@ class BeerControllerTest {
     void getBeerById() throws Exception {
         given(beerRepository.findById(any())).willReturn(Optional.of(Beer.builder().build()));
 
-        mockMvc.perform(get("/api/v1/beer/" + UUID.randomUUID().toString()).accept(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk());
+        mockMvc.perform(get("/api/v1/beer/{beerId}" , UUID.randomUUID().toString()).accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andDo(document("v1/beer",
+                        pathParameters(
+                                parameterWithName("beerId").description("beer id to retrieve data for")
+                        ),
+                        responseFields(
+                                fieldWithPath("id").description("Beer id"),
+                                fieldWithPath("beerName").description("Beer name"),
+                                fieldWithPath("beerStyle").description("Beer style"),
+                                fieldWithPath("price").description("Beer price"),
+                                fieldWithPath("upc").description("Beer upc"),
+                                fieldWithPath("version").description("Beer version"),
+                                fieldWithPath("createdDate").description("Beer created at"),
+                                fieldWithPath("lastModifiedDate").description("Beer last modified date"),
+                                fieldWithPath("quantityOnHand").description("Beer quantity on hand")
+                        )));
     }
 
     @Test
@@ -52,7 +75,20 @@ class BeerControllerTest {
         mockMvc.perform(post("/api/v1/beer/")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(beerDtoJson))
-                .andExpect(status().isCreated());
+                .andExpect(status().isCreated())
+                .andDo(document("v1/beer",
+                        requestFields(
+                                fieldWithPath("id").ignored(),
+                                fieldWithPath("version").ignored(),
+                                fieldWithPath("createdDate").ignored(),
+                                fieldWithPath("lastModifiedDate").ignored(),
+                                fieldWithPath("beerName").description("beer name"),
+                                fieldWithPath("beerStyle").description("beer style"),
+                                fieldWithPath("upc").description("upc"),
+                                fieldWithPath("price").description("beer price"),
+                                fieldWithPath("quantityOnHand").ignored()
+                        )
+                        ));
     }
 
     @Test
